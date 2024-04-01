@@ -3,13 +3,50 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.util.Scanner;
 import java.time.format.DateTimeFormatter;  
 import java.time.LocalDateTime;
 
-public class ServerMulticast {
+public class ServerMulticast implements Runnable{
+	public void run()   {
+		String msg = " ";
+		 try {
+			 MulticastSocket socket;
+		      
+			 socket = new MulticastSocket(4320);
+			 InetAddress ia =InetAddress.getByName("230.0.0.0");
+			 InetSocketAddress grupo = new InetSocketAddress(ia , 4320);
+			 NetworkInterface ni = NetworkInterface.getByInetAddress(ia);
+			 socket.joinGroup(grupo,ni);
+			 while(!msg.contains("Servidor Encerrado!")){
+				   System.out.println("[Servidor] Esperando por mensagem Multicast...");
+				         
+			   do {
+				   byte[] buffer = new byte[1024];
+				         
+				   DatagramPacket packet=new DatagramPacket(buffer,buffer.length);
+				   socket.receive(packet);
+				   msg =new String(packet.getData());
+				   System.out.println("[Cliente] Mensagem recebida do Servidor: "+msg); 
+				         }
+				         while(!msg.contains("Servidor Encerrado!"));
+			 }
+			   
+					 System.out.println("[Servidor] Conexao Encerrada!");
+				     socket.leaveGroup(grupo, ni);
+				     socket.close();
+				     
+		 
+		 } catch (IOException e) {
+				e.printStackTrace();
+		 }
+	}
+	
+	
+	
    public static void main(String[] args) throws IOException {
 	   String data = " ";
 	   String topico = " ";
@@ -18,21 +55,15 @@ public class ServerMulticast {
 	   Scanner sc = new Scanner(System.in);
 	   
 	   MulticastSocket socket = new MulticastSocket();
-	   InetAddress ia =InetAddress.getByName("230.0.0.0");
-	   InetAddress grupo = InetAddress.getByName("230.0.0.0");
-	   NetworkInterface ni = NetworkInterface.getByInetAddress(ia);
+	   InetAddress grupo =InetAddress.getByName("230.0.0.0");
+	   
+	   Thread a1 = new Thread(new ServerMulticast());
+	   a1.start();
 	   
 	   while(!mensagem.equals("Servidor Encerrado!")){
-		   System.out.print("[Servidor] Escolha o tópico da mensagem:\n"
-		   		+ "1. Avisos gerais\r\n"
-		      		+ "2. Suporte técniquicocock\r\n");   
-		      int escolha = Integer.parseInt(sc.nextLine());   
+		   System.out.print("[Servidor] Digite o nome do recipiente da mensagem:\n");   
+		      String nome = sc.nextLine();   
 		      
-		      if(escolha == 1) {
-		    	  topico = "Avisos Gerais";
-		      }else if(escolha == 2) {
-		    	  topico = "Atividades Extracurriculares";
-		      }
 		   
 		   System.out.print("[Servidor] Digite a mensagem:");
 		   mensagem = sc.nextLine();
@@ -42,12 +73,13 @@ public class ServerMulticast {
 		   LocalDateTime now = LocalDateTime.now();  
 		   data = dtf.format(now);
 		   
-		   envio = ("[" + data + "] " + topico + " : " + mensagem).getBytes();	   
+		   envio = ("[" + data + "] " + topico + " de " + nome + " : " + mensagem).getBytes();	   
 	   
 		   
 		   DatagramPacket pacote = new DatagramPacket(envio, envio.length,grupo, 4321);
 		   
 		   socket.send(pacote);
+		   socket.receive(pacote);
 		   
 		  
 	   }
