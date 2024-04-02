@@ -50,10 +50,11 @@ public class ServerMulticast implements Runnable{
 	
    public static void main(String[] args) throws IOException {
 	   String data = " ";
-	   String topico = "Avisos Gerais";
+	   String topico = " ";
 	   String mensagem = " ";
 	   byte[] envio = new byte[1024];
 	   Scanner sc = new Scanner(System.in);
+	   int escolha;
 	   
 	   MulticastSocket socket = new MulticastSocket();
 	   InetAddress ia = InetAddress.getByName("230.0.0.0");
@@ -62,25 +63,50 @@ public class ServerMulticast implements Runnable{
 	   a1.start();
 	   
 	   while(!mensagem.equals("Servidor Encerrado!")){
-		   System.out.print("[Servidor] Digite o nome do recipiente da mensagem:\n");   
-		      String nome = sc.nextLine();   
+		   
+		   System.out.print("[Servidor] Selecione o tópico:"
+		   		+ "1. Avisos gerais\n"
+		   		+ "2. Supporte ao Cliente");
+		   escolha = Integer.parseInt(sc.nextLine());
+		   
+		   if(escolha == 1) {		   
+			   System.out.print("[Servidor] Digite a mensagem:");
+			   mensagem = sc.nextLine();
+			   if(mensagem.equals("encerrar"))
+				   mensagem = "Servidor Encerrado!";
+			   DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); 
+			   LocalDateTime now = LocalDateTime.now();  
+			   data = dtf.format(now);
+			   
+			   envio = ("[" + data + "] " + topico + ": " + mensagem).getBytes();	   
+			   
+			   
+			   DatagramPacket pacote = new DatagramPacket(envio, envio.length,ia, 4321);
+			   
+			   socket.send(pacote);
+		   }else if(escolha == 2) {
+			   System.out.print("[Servidor] Digite o nome do recipiente da mensagem:\n");   
+			   String nome = sc.nextLine();   
+			   
+			   System.out.print("[Servidor] Digite a mensagem:");
+			   mensagem = sc.nextLine();
+			   if(mensagem.equals("encerrar"))
+				   mensagem = "Servidor Encerrado!";
+			   DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); 
+			   LocalDateTime now = LocalDateTime.now();  
+			   data = dtf.format(now);
+			   
+			   envio = ("[" + data + "] " + topico + " de " + nome + " : " + mensagem).getBytes();	   
+			   
+			   
+			   DatagramPacket pacote = new DatagramPacket(envio, envio.length,ia, 4321);
+			   
+			   socket.send(pacote);
+			   socket.receive(pacote);
+		   }
+		   
 		      
 		   
-		   System.out.print("[Servidor] Digite a mensagem:");
-		   mensagem = sc.nextLine();
-		   if(mensagem.equals("encerrar"))
-			   mensagem = "Servidor Encerrado!";
-		   DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); 
-		   LocalDateTime now = LocalDateTime.now();  
-		   data = dtf.format(now);
-		   
-		   envio = ("[" + data + "] " + topico + " de " + nome + " : " + mensagem).getBytes();	   
-	   
-		   
-		   DatagramPacket pacote = new DatagramPacket(envio, envio.length,ia, 4321);
-		   
-		   socket.send(pacote);
-		   socket.receive(pacote);
 		   
 		  
 	   }
