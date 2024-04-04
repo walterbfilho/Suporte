@@ -7,41 +7,53 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.time.format.DateTimeFormatter;  
 import java.time.LocalDateTime;
 
 public class ServerMulticast implements Runnable{
-	
+	private String finalAddress;
+
+	public ServerMulticast(String finalAddress){
+		this.finalAddress = finalAddress;
+	}	
 	
 	public void run()   {
+		List<String> lstClientes = new ArrayList<>();
 		String msg = " ";
 		 try {
-			 MulticastSocket socket;
-			 InetAddress ia = InetAddress.getByName("230.0.0.0");
-			 socket = new MulticastSocket(4320);
-			 InetSocketAddress grupo = new InetSocketAddress(ia , 4320);
-			 NetworkInterface ni = NetworkInterface.getByInetAddress(ia);
-			 socket.joinGroup(grupo,ni);
-			 while(!msg.contains("Servidor Encerrado!")){
-				   System.out.println("[Servidor] Esperando por mensagem do Cliente...");
-				         
-			   do {
-				   byte[] buffer = new byte[1024];
-				         
-				   DatagramPacket packet=new DatagramPacket(buffer,buffer.length);
-				   socket.receive(packet);
-				   msg =new String(packet.getData());
-				   System.out.println("[Cliente] Mensagem recebida do Servidor: "+msg); 
-				         }
-				         while(!msg.contains("Servidor Encerrado!"));
-			 }
-			   
-					 System.out.println("[Servidor] Conexao Encerrada!");
-				     socket.leaveGroup(grupo, ni);
-				     socket.close();
-				     
-		 
+			MulticastSocket socket;
+			InetAddress ia = InetAddress.getByName("230.0.0."  + finalAddress);
+			socket = new MulticastSocket(4320);
+			InetSocketAddress grupo = new InetSocketAddress(ia , 4320);
+			NetworkInterface ni = NetworkInterface.getByInetAddress(ia);
+			socket.joinGroup(grupo,ni);
+
+			//SUPORTE AO CLIENTE
+			if(finalAddress=="2"){
+				System.out.println("\n[SERVIDOR] Esperando por mensagem do Cliente...");
+			}
+
+			do {
+				byte[] buffer = new byte[1024];						
+				DatagramPacket packet=new DatagramPacket(buffer,buffer.length);
+				socket.receive(packet);
+				msg = new String(packet.getData(), 0, packet.getLength(), "UTF-8");
+				if(msg.startsWith("[CLIENT-CONNECT]")){
+					String nomeCliente = msg.split("\\.")[1];
+					lstClientes.add(nomeCliente);
+					System.out.println("\nCLIENTES NOS AVISOS GERAIS: " + lstClientes);
+				}else{
+					System.out.println("\n[SERVIDOR] Mensagem recebida do cliente: "+msg); 
+				}
+			}while(!msg.contains("Servidor Encerrado!"));
+	
+			System.out.println("[Servidor] Conexao Encerrada!");
+			socket.leaveGroup(grupo, ni);
+			socket.close();
+			
 		 } catch (IOException e) {
 				e.printStackTrace();
 		 }
@@ -59,8 +71,10 @@ public class ServerMulticast implements Runnable{
 	   
 	   MulticastSocket socket = new MulticastSocket();
 	   
-	   Thread a1 = new Thread(new ServerMulticast());
+	   Thread a1 = new Thread(new ServerMulticast("2"));
 	   a1.start();
+	   Thread a2 = new Thread(new ServerMulticast("4"));
+	   a2.start();
 	   
 	   while(!mensagem.equals("Servidor Encerrado!")){
 		   
@@ -106,8 +120,6 @@ public class ServerMulticast implements Runnable{
 				socket.send(pacote);
 
 				socket.setSoTimeout(10000);
-
-				System.out.println("Resposta recebida.");
 			} catch (SocketTimeoutException e) {
 				System.out.println("Tempo de espera excedido. Desconectando...");
 				socket.disconnect();

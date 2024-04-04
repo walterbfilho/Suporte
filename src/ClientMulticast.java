@@ -7,6 +7,7 @@ import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class ClientMulticast implements Runnable{
@@ -21,7 +22,7 @@ public class ClientMulticast implements Runnable{
 
 	}
 
-	public void run()   {
+	public void run(){
 		String msg = " ";
 		 try {
 			 MulticastSocket socket;	      
@@ -49,7 +50,7 @@ public class ClientMulticast implements Runnable{
 				         
 				   DatagramPacket packet=new DatagramPacket(buffer,buffer.length);
 				   socket.receive(packet);
-				   msg =new String(packet.getData());
+				   msg = new String(packet.getData(), 0, packet.getLength(), "UTF-8");
 				   if(topic == "2" && !msg.contains(name)){
 				   	 
 					}else{
@@ -80,126 +81,124 @@ public class ClientMulticast implements Runnable{
 	   Scanner sc = new Scanner(System.in);
 	   byte[] envio = new byte[1024];
 	   int escolha;
-	   InetAddress ia =InetAddress.getByName("230.0.0.0");
+	   InetAddress ia =InetAddress.getByName("230.0.0.2");
 	   MulticastSocket socket;
 	   socket = new MulticastSocket(4322);
 	   InetSocketAddress grupo = new InetSocketAddress(ia , 4322);
 		   
-		   String data = " ";
-		   String topico = " ";
-		   String mensagem = " ";
-		   
-		   while(!mensagem.equals("Servidor Encerrado!")) {
-			   
-			   System.out.println("[Cliente] Selecione um tópico para inscrição:\n"
-					   + "1. Avisos Gerais\n"
-					   + "2. Suporte Técnico e Avisos Gerais\n"
-					   + "3. Fórum e Avisos Gerais");
-			   
-			   escolha = Integer.parseInt(sc.nextLine().trim());
-			   
-			   
-			   if(nomeUser == " ") {	   
-				   System.out.println("[Cliente] Bem vindo, digite seu nome de usuário:");
-				   nomeUser = sc.nextLine();
-				   
-			   }
-			   
-			   if(escolha == 1) {
-				   Thread a1 = new Thread(new ClientMulticast(4321,"1", nomeUser));
-				   a1.start();
-				   
-				   
-				   System.out.println("[Cliente] Digite 0 para sair do tópico Avisos Gerais");
-				   escolha = Integer.parseInt(sc.nextLine().trim());
-				   if(escolha == 0) {
-					   a1.stop();
-				   }else {
-					   System.out.println("[Cliente] Comando inválido");
-				   }
-				   
-			   }else if(escolha == 2) {
-				//SUPORTE AO CLIENTE
-				   Thread a1 = new Thread(new ClientMulticast(4321,"2", nomeUser));
-				   a1.start();
-				//AVISO GERAL
-				   Thread a2 = new Thread(new ClientMulticast(4321,"1", nomeUser));
-				   a2.start();
-				   
-				 	//TOPICO QUE APARECE NAS MENSAGENS QUE O CLIENTE ENVIA PARA O SERVIDOR  
-				   topico = "Suporte ao Cliente";
-				   
-				   while(!mensagem.equals("Servidor Encerrado!")){
-					   System.out.print("[Cliente] Digite 0 para sair dos tópicos ou 1 para enviar uma mensagem");
-					   escolha = Integer.parseInt(sc.nextLine().trim());
-					   
-					   if(escolha == 0) {
-						   a1.stop();
-						   a2.stop();
-						   break;
-					   }else if (escolha == 1){
-						   System.out.print("[Cliente] Digite a mensagem:");
-						   mensagem = sc.nextLine();
-						   
-						   DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); 
-						   LocalDateTime now = LocalDateTime.now();  			   
-						   data = dtf.format(now);
-						   
-						   envio = ("[" + data + "] " + topico + " de "+ nomeUser + " : " + mensagem).getBytes();	
-						   DatagramPacket pacote = new DatagramPacket(envio, envio.length,ia, 4320);
-						   
-						   socket.send(pacote);
-						   
-					   }
-					   
-					   
-				   }
-			   }else if(escolha == 3) {
-				   Thread a1 = new Thread(new ClientMulticast(4321,"1", nomeUser));
-				   a1.start();
-				   
-				   Thread a2 = new Thread(new ClientMulticast(4323,"3", nomeUser));
-				   a2.start();
-				   
-				   topico = "Fórum";
-				   
-				   while(!mensagem.equals("Servidor Encerrado!")){
-					try{
-					   System.out.print("[Cliente] Digite 0 para sair dos tópicos ou 1 para enviar uma mensagem");
-					   escolha = Integer.parseInt(sc.nextLine().trim());
-					   
-					   if(escolha == 0) {
-						   a1.stop();
-						   break;
-					   }else if (escolha == 1){	
-						   System.out.print("[Cliente] Digite a mensagem:");
-						   mensagem = sc.nextLine();
-						   
-						   DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); 
-						   LocalDateTime now = LocalDateTime.now();  			   
-						   data = dtf.format(now);
+		String data = " ";
+		String topico = " ";
+		String mensagem = " ";
+		
+		while(!mensagem.equals("Servidor Encerrado!")) {
+			try{
+			System.out.println("[Cliente] Selecione um tópico para inscrição:\n"
+					+ "1. Avisos Gerais\n"
+					+ "2. Suporte Técnico e Avisos Gerais\n"
+					+ "3. Fórum e Avisos Gerais");
+			escolha = Integer.parseInt(sc.nextLine().trim());
+			
+			//Condição para perguntar o nome do usuário e avisar ao servidor apenas na minha primeira vez em que o menu aparece
+			if(nomeUser == " ") {	   
+				System.out.println("[Cliente] Bem vindo, digite seu nome de usuário:");
+				nomeUser = sc.nextLine();
 
-						   ia = InetAddress.getByName("230.0.0.3");
-						   envio = ("[" + data + "] " + topico + " de "+ nomeUser + " : " + mensagem).getBytes();	
-						   DatagramPacket pacote = new DatagramPacket(envio, envio.length,ia, 4323);
-						   
-						   socket.send(pacote);
+				if(escolha == 1 || escolha == 2 || escolha == 3){
+					InetAddress iaconnect = InetAddress.getByName("230.0.0.4");
+					envio = ("[CLIENT-CONNECT]." + nomeUser).getBytes();	
+					DatagramPacket pacote = new DatagramPacket(envio, envio.length,iaconnect, 4320);
+					
+					socket.send(pacote);
+				}
+
+			}
+			
+			if(escolha == 1) {
+				Thread a1 = new Thread(new ClientMulticast(4321,"1", nomeUser));
+				a1.start();
 				
-						   
-					   }
-					   
-					}catch(Exception e){
-						System.out.println("Erro: " +e.getMessage());
+				
+				System.out.println("[Cliente] Digite 0 para sair do tópico Avisos Gerais");
+				escolha = Integer.parseInt(sc.nextLine().trim());
+				if(escolha == 0) {
+					break;
+				}else {
+					System.out.println("[Cliente] Comando inválido");
+				}
+				
+			}else if(escolha == 2) {
+			//SUPORTE AO CLIENTE
+				Thread a1 = new Thread(new ClientMulticast(4321,"2", nomeUser));
+				a1.start();
+			//AVISO GERAL
+				Thread a2 = new Thread(new ClientMulticast(4321,"1", nomeUser));
+				a2.start();
+				
+				//TOPICO QUE APARECE NAS MENSAGENS QUE O CLIENTE ENVIA PARA O SERVIDOR  
+				topico = "Suporte ao Cliente";
+				
+				while(!mensagem.equals("Servidor Encerrado!")){
+					System.out.print("[Cliente] Digite 0 para sair dos tópicos ou 1 para enviar uma mensagem");
+					escolha = Integer.parseInt(sc.nextLine().trim());
+					
+					if(escolha == 0) {
 						break;
-					}   
-				   }
-			   }
-			   
-		   }
+					}else if (escolha == 1){
+						System.out.print("[Cliente] Digite a mensagem:");
+						mensagem = sc.nextLine();
+						
+						DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); 
+						LocalDateTime now = LocalDateTime.now();  			   
+						data = dtf.format(now);
+						
+						envio = ("[" + data + "] " + topico + " de "+ nomeUser + " : " + mensagem).getBytes();	
+						DatagramPacket pacote = new DatagramPacket(envio, envio.length,ia, 4320);
+						
+						socket.send(pacote);
+						
+					}
+					
+					
+				}
+			}else if(escolha == 3) {
+				Thread a1 = new Thread(new ClientMulticast(4321,"1", nomeUser));
+				a1.start();
+				
+				Thread a2 = new Thread(new ClientMulticast(4323,"3", nomeUser));
+				a2.start();
+				
+				topico = "Fórum";
+				
+				while(!mensagem.equals("Servidor Encerrado!")){
+					System.out.print("[Cliente] Digite 0 para sair dos tópicos ou 1 para enviar uma mensagem");
+					escolha = Integer.parseInt(sc.nextLine().trim());
+					
+					if(escolha == 0) {
+						break;
+					}else if (escolha == 1){	
+						System.out.print("[Cliente] Digite a mensagem:");
+						mensagem = sc.nextLine();
+						
+						DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); 
+						LocalDateTime now = LocalDateTime.now();  			   
+						data = dtf.format(now);
 
-	   	      
-	      
-	   
+						ia = InetAddress.getByName("230.0.0.3");
+						envio = ("[" + data + "] " + topico + " de "+ nomeUser + " : " + mensagem).getBytes();	
+						DatagramPacket pacote = new DatagramPacket(envio, envio.length,ia, 4323);
+						
+						socket.send(pacote);
+			
+						
+					}
+				}
+			}
+		}catch(NoSuchElementException e){
+			System.out.println("\nO programa foi encerrado!");
+			break;
+		}
+		}
+
    }
 
   
